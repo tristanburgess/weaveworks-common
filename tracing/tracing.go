@@ -9,6 +9,7 @@ import (
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ErrInvalidConfiguration is an error to notify client to provide valid trace report agent or config server
@@ -51,29 +52,30 @@ func NewFromEnv(serviceName string, options ...jaegercfg.Option) (io.Closer, err
 
 // ExtractTraceID extracts the trace id, if any from the context.
 func ExtractTraceID(ctx context.Context) (string, bool) {
-	sp := opentracing.SpanFromContext(ctx)
-	if sp == nil {
-		return "", false
-	}
-	sctx, ok := sp.Context().(jaeger.SpanContext)
-	if !ok {
-		return "", false
-	}
-
-	return sctx.TraceID().String(), true
+	traceID, _, ok := extractTraceID(ctx)
+	return traceID, ok
 }
 
 // ExtractSampledTraceID works like ExtractTraceID but the returned bool is only
 // true if the returned trace id is sampled.
 func ExtractSampledTraceID(ctx context.Context) (string, bool) {
-	sp := opentracing.SpanFromContext(ctx)
-	if sp == nil {
-		return "", false
-	}
-	sctx, ok := sp.Context().(jaeger.SpanContext)
-	if !ok {
-		return "", false
+	traceID, sampled, _ := extractTraceID(ctx)
+	return traceID, sampled
+}
+
+// extractTraceID reads a Jaeger span context first, then falls back to the OTel one.
+// The fallback also covers spans started through the OTel OpenTracing bridge, whose
+// span contexts aren't Jaeger ones but which also store the OTel span in the context.
+func extractTraceID(ctx context.Context) (traceID string, sampled, ok bool) {
+	if sp := opentracing.SpanFromContext(ctx); sp != nil {
+		if sctx, ok := sp.Context().(jaeger.SpanContext); ok {
+			return sctx.TraceID().String(), sctx.IsSampled(), true
+		}
 	}
 
-	return sctx.TraceID().String(), sctx.IsSampled()
+	if sctx := trace.SpanContextFromContext(ctx); sctx.TraceID().IsValid() {
+		return sctx.TraceID().String(), sctx.IsSampled(), true
+	}
+
+	return "", false, false
 }
