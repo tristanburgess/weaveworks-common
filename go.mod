@@ -28,6 +28,7 @@ require (
 	github.com/uber/jaeger-client-go v2.28.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	github.com/weaveworks/promrus v1.2.0
+	go.opentelemetry.io/otel/trace v1.34.0
 	golang.org/x/net v0.34.0
 	golang.org/x/tools v0.22.0
 	google.golang.org/grpc v1.71.0
@@ -51,6 +52,7 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.uber.org/atomic v1.5.1 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
